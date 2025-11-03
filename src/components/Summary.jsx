@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { workSessionAPI } from '../services/api';
-import { formatDate, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 
 const Summary = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -12,14 +12,16 @@ const Summary = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadMonthlySummary();
-  }, [currentDate]);
+    if (!showCustom) {
+      loadMonthlySummary();
+    }
+  }, [currentDate, showCustom]);
 
   const loadMonthlySummary = async () => {
     setLoading(true);
     try {
-      const start = formatDate(startOfMonth(currentDate), 'yyyy-MM-dd');
-      const end = formatDate(endOfMonth(currentDate), 'yyyy-MM-dd');
+      const start = format(startOfMonth(currentDate), 'yyyy-MM-dd');
+      const end = format(endOfMonth(currentDate), 'yyyy-MM-dd');
       const response = await workSessionAPI.getSummary(start, end);
       setMonthlySummary(response.data);
     } catch (err) {
@@ -43,6 +45,14 @@ const Summary = () => {
     }
   };
 
+  const handlePrevMonth = () => {
+    setCurrentDate(subMonths(currentDate, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(addMonths(currentDate, 1));
+  };
+
   const exportData = () => {
     const data = showCustom ? customSummary : monthlySummary;
     if (!data) return;
@@ -52,7 +62,7 @@ const Summary = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `salary-report-${formatDate(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.download = `salary-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
   };
 
@@ -87,7 +97,7 @@ const Summary = () => {
         <div className="flex gap-4 mb-4">
           <button
             onClick={() => setShowCustom(false)}
-            className={showCustom ? 'btn-secondary' : 'btn-primary'}
+            className={!showCustom ? 'btn-primary' : 'btn-secondary'}
           >
             Monthly
           </button>
@@ -98,6 +108,20 @@ const Summary = () => {
             Custom Period
           </button>
         </div>
+
+        {!showCustom && (
+          <div className="flex justify-between items-center mb-4">
+            <button onClick={handlePrevMonth} className="btn-secondary">
+              ← Previous Month
+            </button>
+            <h3 className="text-lg font-semibold">
+              {format(currentDate, 'MMMM yyyy')}
+            </h3>
+            <button onClick={handleNextMonth} className="btn-secondary">
+              Next Month →
+            </button>
+          </div>
+        )}
 
         {showCustom && (
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -140,7 +164,7 @@ const Summary = () => {
         customSummary && <SummaryCard title="Custom Period Summary" data={customSummary} />
       ) : (
         <SummaryCard 
-          title={`${formatDate(currentDate, 'MMMM yyyy')} Summary`} 
+          title={`${format(currentDate, 'MMMM yyyy')} Summary`} 
           data={monthlySummary} 
         />
       )}

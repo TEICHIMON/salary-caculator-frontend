@@ -46,7 +46,8 @@ const WorkSessionModal = ({ isOpen, onClose, date, onSuccess, existingSessions =
   };
 
   const removeSession = (index) => {
-    setSessions(sessions.filter((_, i) => i !== index));
+    const newSessions = sessions.filter((_, i) => i !== index);
+    setSessions(newSessions);
   };
 
   const updateSession = (index, field, value) => {
@@ -70,7 +71,7 @@ const WorkSessionModal = ({ isOpen, onClose, date, onSuccess, existingSessions =
         await workSessionAPI.delete(id);
       }
 
-      // Create or update sessions
+      // Create or update sessions (only if there are any sessions left)
       for (const session of sessions) {
         const data = {
           workDate: formatDate(date),
@@ -111,71 +112,77 @@ const WorkSessionModal = ({ isOpen, onClose, date, onSuccess, existingSessions =
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4 mb-6">
-            {sessions.map((session, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold">Period {index + 1}</h3>
-                  {sessions.length > 1 && (
+          {sessions.length > 0 ? (
+            <div className="space-y-4 mb-6">
+              {sessions.map((session, index) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-semibold">Period {index + 1}</h3>
                     <button
                       type="button"
                       onClick={() => removeSession(index)}
-                      className="text-red-600 hover:text-red-800 text-sm"
+                      className="text-red-600 hover:text-red-800 text-sm font-medium"
                     >
                       Remove
                     </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Start Time
-                    </label>
-                    <input
-                      type="time"
-                      value={session.startTime}
-                      onChange={(e) => updateSession(index, 'startTime', e.target.value)}
-                      className="input-field"
-                      required
-                    />
                   </div>
 
-                  <div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Start Time
+                      </label>
+                      <input
+                        type="time"
+                        value={session.startTime}
+                        onChange={(e) => updateSession(index, 'startTime', e.target.value)}
+                        className="input-field"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        End Time
+                      </label>
+                      <input
+                        type="time"
+                        value={session.endTime}
+                        onChange={(e) => updateSession(index, 'endTime', e.target.value)}
+                        className="input-field"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      End Time
+                      Salary Type
                     </label>
-                    <input
-                      type="time"
-                      value={session.endTime}
-                      onChange={(e) => updateSession(index, 'endTime', e.target.value)}
+                    <select
+                      value={session.salaryTypeId || ''}
+                      onChange={(e) => updateSession(index, 'salaryTypeId', e.target.value)}
                       className="input-field"
                       required
-                    />
+                    >
+                      <option value="">Select salary type</option>
+                      {salaryTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name} - ¥{type.hourlyRate}/h
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Salary Type
-                  </label>
-                  <select
-                    value={session.salaryTypeId || ''}
-                    onChange={(e) => updateSession(index, 'salaryTypeId', e.target.value)}
-                    className="input-field"
-                    required
-                  >
-                    <option value="">Select salary type</option>
-                    {salaryTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name} - ¥{type.hourlyRate}/h
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                All work sessions removed. Click "Save" to delete all sessions for this day, or "Add Another Period" to add a new session.
+              </p>
+            </div>
+          )}
 
           <button
             type="button"
