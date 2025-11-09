@@ -23,6 +23,8 @@ const WorkSessionModal = ({ isOpen, onClose, date, onSuccess, existingSessions =
       } else {
         setSessions([{ startTime: '09:00', endTime: '17:00', salaryTypeId: null }]);
       }
+      // Clear error when modal opens
+      setError('');
     }
   }, [isOpen, existingSessions]);
 
@@ -43,22 +45,87 @@ const WorkSessionModal = ({ isOpen, onClose, date, onSuccess, existingSessions =
       ...sessions,
       { startTime: '09:00', endTime: '17:00', salaryTypeId: salaryTypes[0]?.id || null }
     ]);
+    // Clear error when adding new session
+    setError('');
   };
 
   const removeSession = (index) => {
     const newSessions = sessions.filter((_, i) => i !== index);
     setSessions(newSessions);
+    // Clear error when removing session
+    setError('');
   };
 
   const updateSession = (index, field, value) => {
     const newSessions = [...sessions];
     newSessions[index][field] = value;
     setSessions(newSessions);
+    // Clear error when updating session
+    setError('');
+  };
+
+  // Function to check if two time periods overlap
+  const timesOverlap = (start1, end1, start2, end2) => {
+    // Convert time strings to comparable numbers (e.g., "09:30" -> 930)
+    const timeToNumber = (time) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 100 + minutes;
+    };
+
+    const s1 = timeToNumber(start1);
+    const e1 = timeToNumber(end1);
+    const s2 = timeToNumber(start2);
+    const e2 = timeToNumber(end2);
+
+    // Check if times are valid (end time should be after start time)
+    if (e1 <= s1 || e2 <= s2) {
+      return 'invalid';
+    }
+
+    // Check for overlap: periods overlap if one starts before the other ends
+    return (s1 < e2 && s2 < e1);
+  };
+
+  // Validate sessions before submitting
+  const validateSessions = () => {
+    // Check if any session has end time before or equal to start time
+    for (let i = 0; i < sessions.length; i++) {
+      const session = sessions[i];
+      if (session.endTime <= session.startTime) {
+        return `Period ${i + 1}: End time must be after start time`;
+      }
+    }
+
+    // Check for overlaps between sessions
+    for (let i = 0; i < sessions.length; i++) {
+      for (let j = i + 1; j < sessions.length; j++) {
+        const overlap = timesOverlap(
+          sessions[i].startTime,
+          sessions[i].endTime,
+          sessions[j].startTime,
+          sessions[j].endTime
+        );
+        
+        if (overlap === true) {
+          return `Time overlap detected between Period ${i + 1} (${sessions[i].startTime}-${sessions[i].endTime}) and Period ${j + 1} (${sessions[j].startTime}-${sessions[j].endTime})`;
+        }
+      }
+    }
+
+    return null; // No errors
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Validate sessions before submitting
+    const validationError = validateSessions();
+    if (validationError) {
+      setError(validationError);
+      return; // Don't submit if validation fails
+    }
+
     setLoading(true);
 
     try {
@@ -197,6 +264,7 @@ const WorkSessionModal = ({ isOpen, onClose, date, onSuccess, existingSessions =
               type="button"
               onClick={onClose}
               className="btn-secondary flex-1"
+              disabled={loading}
             >
               Cancel
             </button>
